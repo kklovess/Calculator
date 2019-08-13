@@ -11,12 +11,15 @@ namespace Calculator
     public class Calculator
     {
         private string _expression;
-        Queue<string> _queue = new Queue<string>();
-        List<string> _postOrder = new List<string>();
+        Queue<string> _inOrder = new Queue<string>(); // 中续表达式队列
+        Queue<string> _postOrder = new Queue<string>();  // 后续表达式队列
+        Stack<string> _operatorStack = new Stack<string>(); // 操作符栈
+
 
         public Calculator(string expression)
         {
-            _expression = expression.Replace(" ", "") + "#";
+            _expression = expression.Replace(" ", "") + "#"; //#表示临界符
+            _operatorStack.Push("#");
         }
 
         /// <summary>
@@ -27,6 +30,13 @@ namespace Calculator
         {
             Parse();
             InorderToPostorder();
+            return Calculate();
+        }
+
+        public decimal RunV2()
+        {
+            Parse();
+            InorderToPostorderV2();
             return Calculate();
         }
 
@@ -46,13 +56,13 @@ namespace Calculator
                     if (i != j)
                     {
                         string num = _expression.Substring(i, j - i);
-                        _queue.Enqueue(num);
-                        _queue.Enqueue(c);
+                        _inOrder.Enqueue(num);
+                        _inOrder.Enqueue(c);
                         i = j + 1;
                     }
                     else
                     {
-                        _queue.Enqueue(c);
+                        _inOrder.Enqueue(c);
                         i++;
                     }
                 }
@@ -60,74 +70,142 @@ namespace Calculator
             }
         }
 
-        /// <summary>
-        /// 中续表达式转后续表达式
-        /// </summary>
         void InorderToPostorder()
         {
-            Stack<string> inOrder = new Stack<string>();
-            inOrder.Push("#");
-            int count = _queue.Count;
-            for (int i = 0; i < count; i++)
+            while (_inOrder.Count > 0)
             {
-                string item = _queue.Dequeue();
+                string item = _inOrder.Dequeue();
                 if (!IsOperators(item))
                 {
-                    _postOrder.Add(item);
+                    _postOrder.Enqueue(item);
                 }
                 else
                 {
-                    string m = inOrder.Peek();
-                    int priority = Priority.Compare(m, item);
-                    while (priority == 1)
+                    // 优先级高的操作符往前放
+                    string top = _operatorStack.Peek();
+                    PriorityV2.EnumPriority priority = PriorityV2.Compare(top, item);
+                    while (priority == PriorityV2.EnumPriority.大于)
                     {
-                        string temp = inOrder.Pop();
+                        string temp = _operatorStack.Pop();
                         if (temp != "(" && temp != ")")
                         {
-                            _postOrder.Add(temp);
+                            _postOrder.Enqueue(temp);
                         }
-                        m = inOrder.Peek();
-                        priority = Priority.Compare(m, item);
+                        top = _operatorStack.Peek();
+                        priority = PriorityV2.Compare(top, item);
                     }
-                    if (priority == 2)
+                    if (priority == PriorityV2.EnumPriority.等于)
                     {
-                        inOrder.Pop();
+                        _operatorStack.Pop();
                     }
-                    else if (priority == 0)
+                    else if (priority == PriorityV2.EnumPriority.小于)
                     {
-                        inOrder.Push(item);
+                        _operatorStack.Push(item);
+                    }
+                    else
+                    {
+                        throw new Exception("表达式错误");
                     }
                 }
             }
+            Console.WriteLine(string.Join(" ", _postOrder.ToArray()));
         }
 
+        /// <summary>
+        /// 中续表达式转后续表达式
+        /// 
+        /// 中序表达式转换为逆波兰表达式的一般算法是:
+        ///     首先需要分配2个栈，一个作为临时存储运算符的栈S1（含一个结束符号），
+        /// 一个作为输入逆波兰式的栈S2（空栈），S1栈可先放入优先级最低的运算符#，
+        /// 注意，中缀式应以此最低优先级的运算符结束。可指定其他字符，不一定非#不可。
+        /// 从中缀式的左端开始取字符，逐序进行如下步骤：
+        /// 
+        /// step1: 若取出的字符是操作数，将该操作数直接送入S2栈
+        /// step2: 若取出的字符是运算符，则将该运算符与S1栈栈顶元素比较，
+        ///        如果，该运算符优先级大于S1栈栈顶运算符优先级，则将该运算符进S1栈;
+        ///        否则，将S1栈的栈顶运算符弹出，送入S2栈中，直至S1栈栈顶运算符低于（不包括等于）该运算符优先级，则将该运算符送入S1栈。
+        /// step3: 若取出的字符是“（”，则直接送入S1栈栈顶
+        /// step4: 若取出的字符是“）”，则将距离S1栈栈顶最近的“（”之间的运算符，逐个出栈，依次送入S2栈，此时抛弃“（”。
+        /// 
+        /// </summary>
+        void InorderToPostorderV2()
+        {
+            Dictionary<string, int> _priorityDic = new Dictionary<string, int>
+            {
+                { "#" , 0 },
+                { "+" , 1 },
+                { "-" , 1 },
+                { "*" , 2 },
+                { "/" , 2 },
+            };
+            while (_inOrder.Count > 0)
+            {
+                string item = _inOrder.Dequeue();
+                if (!IsOperators(item))
+                {
+                    _postOrder.Enqueue(item);
+                }
+                else if (item == "(")
+                {
+                    _operatorStack.Push(item);
+                }
+                else if (item == ")")
+                {
+                    string tempOp;
+                    while (_operatorStack.Count > 0 && (tempOp = _operatorStack.Pop()) != "(")
+                    {
+                        _postOrder.Enqueue(tempOp);
+                    }
+                }
+                else
+                {
+                    string top = _operatorStack.Peek();
+                    if (top != "(" && _priorityDic[item] <= _priorityDic[top])
+                    {
+                        _postOrder.Enqueue(_operatorStack.Pop());
+                    }
+                    _operatorStack.Push(item);
+                }
+            }
+            while (_operatorStack.Count > 0)
+            {
+                string top = _operatorStack.Pop();
+                if (top != "#")
+                {
+                    _postOrder.Enqueue(top);
+                }
+            }
+            Console.WriteLine(string.Join(" ", _postOrder.ToArray()));
+        }
+
+        /// <summary>
+        /// 对后续表达式进行计算
+        /// </summary>
+        /// <returns></returns>
         decimal Calculate()
         {
             if (_postOrder.Count == 0)
                 throw new Exception("计算失败：表达式错误");
-            try
+
+            // 临时栈用于存储数字（利用后进先出的特性）
+            Stack<string> tempStack = new Stack<string>();
+            while (_postOrder.Count > 0)
             {
-                int i = 0;
-                while (i < _postOrder.Count)
+                string item = _postOrder.Dequeue();
+                if (IsOperators(item))
                 {
-                    string _operator = _postOrder[i];
-                    if (IsOperators(_operator))
-                    {
-                        string x = _postOrder[i - 2];
-                        string y = _postOrder[i - 1];
-                        string result = Arithmetic(x, y, _operator);
-                        _postOrder.RemoveRange(i - 2, 3);
-                        _postOrder.Insert(i - 2, result);
-                        i -= 2;
-                    }
-                    i++;
+                    string y = tempStack.Pop(); // 这个是右边的操作数
+                    string x = tempStack.Pop(); // 这个是左边的操作数
+                    string result = Arithmetic(x, y, item);
+                    tempStack.Push(result);
                 }
-                return decimal.Parse(_postOrder[0]);
+                else
+                {
+                    tempStack.Push(item);
+                }
+                Console.WriteLine(string.Join(" ", tempStack.ToArray()));
             }
-            catch (Exception)
-            {
-                throw new Exception("计算错误");
-            }
+            return decimal.Parse(tempStack.Pop());
         }
 
         /// <summary>
@@ -137,6 +215,13 @@ namespace Calculator
         /// <returns></returns>
         bool IsOperators(string c) => Regex.IsMatch(c, @"\+|\-|\*|\/|\(|\)|#");
 
+        /// <summary>
+        /// 算术
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <param name="_operator"></param>
+        /// <returns></returns>
         string Arithmetic(string x, string y, string _operator)
         {
             decimal result = 0;
@@ -147,7 +232,16 @@ namespace Calculator
                 case "+": result = a + b; break;
                 case "-": result = a - b; break;
                 case "*": result = a * b; break;
-                case "/": result = a / b; break;
+                case "/":
+                    {
+                        if (b == 0)
+                        {
+                            throw new Exception("除以0错误");
+                        }
+                        result = a / b;
+                        break;
+                    }
+
             }
             return result.ToString();
         }

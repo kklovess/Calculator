@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 
 namespace Calculator
 {
@@ -6,10 +7,18 @@ namespace Calculator
     {
         static void Main(string[] args)
         {
-            //double result = new Calculator("A * 0.8 + B * 0.2 + ( 5 - 2 ) / 2").Run();
-            decimal result = new Calculator("5.000*2.0+1.2").Run();
+            Stopwatch sw = new Stopwatch();
+            sw.Start();
+            decimal result1 = new Calculator("0.2 * 0.8 + 4 * 0.3 / 2 + ( 5 - 2 ) * 2 / ( 2 * ( 1.2 + 0.3 ) )").Run();
+            sw.Stop();
+            Console.WriteLine($"result1 is {result1}");
+            Console.WriteLine($"{sw.ElapsedMilliseconds} ms");
 
-            Console.WriteLine(result);
+            sw.Start();
+            decimal result2 = new Calculator("0.2 * 0.8 + 4 * 0.3 / 2 + ( 5 - 2 ) * 2 / ( 2 * ( 1.2 + 0.3 ) )").RunV2();
+            sw.Stop();
+            Console.WriteLine($"result2 is {result2}");
+            Console.WriteLine($"{sw.ElapsedMilliseconds} ms");
         }
     }
 }
