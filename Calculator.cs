@@ -88,9 +88,7 @@ namespace Calculator
                     {
                         string temp = _operatorStack.Pop();
                         if (temp != "(" && temp != ")")
-                        {
                             _postOrder.Enqueue(temp);
-                        }
                         top = _operatorStack.Peek();
                         priority = PriorityV2.Compare(top, item);
                     }
@@ -137,6 +135,8 @@ namespace Calculator
                 { "-" , 1 },
                 { "*" , 2 },
                 { "/" , 2 },
+                { "(" , 3 },
+                { ")" , 3 },
             };
             while (_inOrder.Count > 0)
             {
@@ -160,9 +160,10 @@ namespace Calculator
                 else
                 {
                     string top = _operatorStack.Peek();
-                    if (top != "(" && _priorityDic[item] <= _priorityDic[top])
+                    if (_priorityDic[item] <= _priorityDic[top])
                     {
-                        _postOrder.Enqueue(_operatorStack.Pop());
+                        if (top != "(" && top != ")")
+                            _postOrder.Enqueue(_operatorStack.Pop());
                     }
                     _operatorStack.Push(item);
                 }
