@@ -1,7 +1,7 @@
 # 表达式（四则运算）计算的算法 C#
 
 ## 基本知识点
->[逆波兰表达式](http://note.youdao.comnoteshare?id=a27c8fb252221c063b1c5bb6501ac561)
+>[逆波兰表达式](http://note.youdao.com/noteshare?id=a27c8fb252221c063b1c5bb6501ac561)
 
 >[参考连接](https://blog.csdn.net/luoweifu/article/details/10477447)
 
@@ -37,6 +37,5 @@
 
 ## 使用
 ``` C#
-	new Calculator("expression").Run();
-
+new Calculator("expression").Run();
 ```
